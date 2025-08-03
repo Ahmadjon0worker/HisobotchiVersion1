@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xodimlar - Hisobotchi Tizimi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>Hisobotchi Tizimi</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="dashboard.html" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+            <a href="users.html" class="nav-link active">
+                <i class="fas fa-users"></i>
+                Xodimlar
+            </a>
+            <a href="tasks.html" class="nav-link">
+                <i class="fas fa-tasks"></i>
+                Vazifalar
+            </a>
+            <a href="reports.html" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                Hisobotlar
+            </a>
+            <a href="chat.html" class="nav-link">
+                <i class="fas fa-comments"></i>
+                Chat
+            </a>
+        </div>
+        
+        <div class="nav-user">
+            <div class="user-info">
+                <span id="userName">Foydalanuvchi</span>
+                <span id="userRole" class="user-role">Admin</span>
+            </div>
+            <div class="user-dropdown">
+                <i class="fas fa-user-circle"></i>
+                <div class="dropdown-menu">
+                    <a href="#" onclick="viewProfile()">
+                        <i class="fas fa-user"></i>
+                        Profil
+                    </a>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Chiqish
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title animate-fade-in-down">Xodimlar boshqaruvi</h1>
+            <button class="btn btn-primary animate-fade-in-down" onclick="openUserModal()">
+                <i class="fas fa-plus"></i>
+                Yangi xodim qo'shish
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section animate-fade-in-up">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="roleFilter">Lavozim bo'yicha filtrlash:</label>
+                    <select id="roleFilter" onchange="filterUsers()">
+                        <option value="">Barchasi</option>
+                        <option value="user">User</option>
+                        <option value="hr">HR</option>
+                        <option value="admin">Admin</option>
+                        <option value="superadmin">Super Admin</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="departmentFilter">Bo'lim bo'yicha filtrlash:</label>
+                    <select id="departmentFilter" onchange="filterUsers()">
+                        <option value="">Barchasi</option>
+                        <option value="IT">IT</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Moliya</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Sales">Sotuv</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="searchInput">Qidirish:</label>
+                    <input type="text" id="searchInput" placeholder="Ism, familiya yoki email" oninput="filterUsers()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-container animate-fade-in-up">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Ism familiya</th>
+                        <th>Email</th>
+                        <th>Lavozim</th>
+                        <th>Bo'lim</th>
+                        <th>Telefon</th>
+                        <th>Status</th>
+                        <th>Harakatlar</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Users will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="usersLoading" class="loading-indicator" style="display: none;">
+            <div class="spinner animate-spin"></div>
+            <p>Xodimlar ma'lumotlari yuklanmoqda...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-users"></i>
+            <h3>Hech qanday xodim topilmadi</h3>
+            <p>Filtrlash shartlaringizni o'zgartiring yoki yangi xodim qo'shing</p>
+        </div>
+    </main>
+
+    <!-- User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Yangi xodim qo'shish</h3>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="fullName">To'liq ism *</label>
+                            <input type="text" id="fullName" name="fullName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="username">Foydalanuvchi nomi *</label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Telefon</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="role">Lavozim *</label>
+                            <select id="role" name="role" required>
+                                <option value="user">User</option>
+                                <option value="hr">HR</option>
+                                <option value="admin">Admin</option>
+                                <option value="superadmin">Super Admin</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="department">Bo'lim</label>
+                            <select id="department" name="department">
+                                <option value="">Tanlash</option>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Moliya</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Sales">Sotuv</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="passwordGroup">
+                            <label for="password">Parol *</label>
+                            <input type="password" id="password" name="password">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="isActive">Status</label>
+                            <select id="isActive" name="isActive">
+                                <option value="true">Faol</option>
+                                <option value="false">Nofaol</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">
+                            Bekor qilish
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>O'chirishni tasdiqlash</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Haqiqatan ham bu xodimni o'chirmoqchimisiz?</p>
+                <p><strong id="deleteUserName"></strong></p>
+                <p class="text-danger">Bu amal qaytarib bo'lmaydi!</p>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                        Bekor qilish
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                        <i class="fas fa-trash"></i>
+                        O'chirish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast">
+        <span id="toast-message"></span>
+        <button id="toast-close">&times;</button>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/users.js"></script>
+</body>
+</html>
