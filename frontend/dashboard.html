@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Hisobotchi Tizimi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>Hisobotchi Tizimi</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="dashboard.html" class="nav-link active">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+            <a href="users.html" class="nav-link" id="usersLink">
+                <i class="fas fa-users"></i>
+                Xodimlar
+            </a>
+            <a href="tasks.html" class="nav-link">
+                <i class="fas fa-tasks"></i>
+                Vazifalar
+            </a>
+            <a href="reports.html" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                Hisobotlar
+            </a>
+            <a href="chat.html" class="nav-link">
+                <i class="fas fa-comments"></i>
+                Chat
+            </a>
+        </div>
+        
+        <div class="nav-user">
+            <!-- Theme Toggle -->
+            <div class="theme-toggle animate-scale-in" onclick="toggleTheme()">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+            </div>
+            
+            <div class="user-info">
+                <span id="userName">Foydalanuvchi</span>
+                <span id="userRole" class="user-role">User</span>
+            </div>
+            <div class="user-dropdown">
+                <i class="fas fa-user-circle"></i>
+                <div class="dropdown-menu">
+                    <a href="#" onclick="viewProfile()">
+                        <i class="fas fa-user"></i>
+                        Profil
+                    </a>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Chiqish
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>Xush kelibsiz, <span id="welcomeUser">Foydalanuvchi</span>!</h1>
+            <p>Bugun: <span id="currentDate"></span></p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card" id="usersCard">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalUsers">0</h3>
+                    <p>Umumiy xodimlar</p>
+                </div>
+            </div>
+
+            <div class="stat-card" id="tasksCard">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalTasks">0</h3>
+                    <p>Faol vazifalar</p>
+                </div>
+            </div>
+
+            <div class="stat-card" id="reportsCard">
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalReports">0</h3>
+                    <p>Hisobotlar</p>
+                </div>
+            </div>
+
+            <div class="stat-card" id="messagesCard">
+                <div class="stat-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="unreadMessages">0</h3>
+                    <p>O'qilmagan xabarlar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h2>Tez harakatlar</h2>
+            <div class="actions-grid">
+                <button class="action-btn" onclick="location.href='reports.html'">
+                    <i class="fas fa-plus"></i>
+                    Hisobot yuborish
+                </button>
+                <button class="action-btn" onclick="location.href='tasks.html'">
+                    <i class="fas fa-eye"></i>
+                    Vazifalarni ko'rish
+                </button>
+                <button class="action-btn" onclick="location.href='chat.html'">
+                    <i class="fas fa-comment"></i>
+                    Chat ochish
+                </button>
+                <button class="action-btn" onclick="startTimeTracking()" id="timeTrackBtn">
+                    <i class="fas fa-play"></i>
+                    Vaqt hisobini boshlash
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h2>So'nggi faoliyat</h2>
+            <div class="activity-list" id="activityList">
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="activity-content">
+                        <p>Tizimga kirish vaqti</p>
+                        <span class="activity-time" id="loginTime"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Time Tracking Modal -->
+    <div id="timeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Vaqt hisoblash</h3>
+                <span class="close" onclick="closeTimeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="time-display">
+                    <span id="timeDisplay">00:00:00</span>
+                </div>
+                <div class="time-controls">
+                    <button id="startBtn" onclick="startTimer()">
+                        <i class="fas fa-play"></i>
+                        Boshlash
+                    </button>
+                    <button id="pauseBtn" onclick="pauseTimer()" disabled>
+                        <i class="fas fa-pause"></i>
+                        To'xtatish
+                    </button>
+                    <button id="stopBtn" onclick="stopTimer()" disabled>
+                        <i class="fas fa-stop"></i>
+                        Tugatish
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Vazifa tavsifi:</label>
+                    <textarea id="taskDescription" placeholder="Nima ustida ishladingiz?"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast">
+        <span id="toast-message"></span>
+        <button id="toast-close">&times;</button>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Global variables
+        let currentUser = null;
+        let timerInterval = null;
+        let seconds = 0;
+        let isTimerRunning = false;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadDashboardData();
+            updateDateTime();
+            setInterval(updateDateTime, 60000); // Update every minute
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    updateUserInfo();
+                    updateNavigation();
+                } else {
+                    localStorage.removeItem('token');
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('token');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.full_name || currentUser.username;
+                document.getElementById('welcomeUser').textContent = currentUser.full_name || currentUser.username;
+                document.getElementById('userRole').textContent = currentUser.role;
+                document.getElementById('loginTime').textContent = new Date().toLocaleString('uz-UZ');
+            }
+        }
+
+        function updateNavigation() {
+            const usersLink = document.getElementById('usersLink');
+            if (currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'admin' || currentUser.role === 'hr')) {
+                usersLink.style.display = 'block';
+            } else {
+                usersLink.style.display = 'none';
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load dashboard statistics
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.DASHBOARD.STATS);
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    updateDashboardStats(stats);
+                } else {
+                    // Fallback: load individual statistics
+                    await loadIndividualStats();
+                }
+                
+                // Load recent activity
+                await loadRecentActivity();
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                showToast('Dashboard ma\'lumotlarini yuklashda xatolik', 'error');
+            }
+        }
+
+        function updateDashboardStats(stats) {
+            document.getElementById('totalUsers').textContent = stats.users_count || 0;
+            document.getElementById('totalTasks').textContent = stats.tasks_count || 0;
+            document.getElementById('totalReports').textContent = stats.reports_count || 0;
+            document.getElementById('unreadMessages').textContent = stats.unread_messages || 0;
+        }
+
+        async function loadIndividualStats() {
+            try {
+                const [usersRes, tasksRes, reportsRes] = await Promise.all([
+                    makeAuthenticatedRequest(API_ENDPOINTS.USERS.COUNT),
+                    makeAuthenticatedRequest(API_ENDPOINTS.TASKS.COUNT),
+                    makeAuthenticatedRequest(API_ENDPOINTS.REPORTS.COUNT)
+                ]);
+
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    document.getElementById('totalUsers').textContent = usersData.count || usersData.total || 0;
+                }
+
+                if (tasksRes.ok) {
+                    const tasksData = await tasksRes.json();
+                    document.getElementById('totalTasks').textContent = tasksData.count || tasksData.total || 0;
+                }
+
+                if (reportsRes.ok) {
+                    const reportsData = await reportsRes.json();
+                    document.getElementById('totalReports').textContent = reportsData.count || reportsData.total || 0;
+                }
+
+            } catch (error) {
+                console.error('Failed to load individual stats:', error);
+            }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.DASHBOARD.RECENT_ACTIVITY);
+                
+                if (response.ok) {
+                    const activities = await response.json();
+                    updateRecentActivity(activities);
+                }
+            } catch (error) {
+                console.error('Failed to load recent activity:', error);
+            }
+        }
+
+        function updateRecentActivity(activities) {
+            const activityList = document.getElementById('activityList');
+            if (!activityList || !Array.isArray(activities)) return;
+
+            const currentActivity = activityList.innerHTML;
+            
+            activities.slice(0, 5).forEach(activity => {
+                const activityHtml = `
+                    <div class="activity-item animate-fade-in-up">
+                        <div class="activity-icon">
+                            <i class="fas ${getActivityIcon(activity.type)}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p>${activity.description}</p>
+                            <span class="activity-time">${formatRelativeTime(new Date(activity.created_at))}</span>
+                        </div>
+                    </div>
+                `;
+                activityList.insertAdjacentHTML('afterbegin', activityHtml);
+            });
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'login': 'fa-sign-in-alt',
+                'task_created': 'fa-plus',
+                'task_completed': 'fa-check',
+                'report_submitted': 'fa-file-alt',
+                'user_created': 'fa-user-plus',
+                'default': 'fa-clock'
+            };
+            return icons[type] || icons.default;
+        }
+
+        function formatRelativeTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Hozir';
+            if (minutes < 60) return `${minutes} daqiqa oldin`;
+            if (hours < 24) return `${hours} soat oldin`;
+            return `${days} kun oldin`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('uz-UZ', options);
+        }
+
+        function startTimeTracking() {
+            document.getElementById('timeModal').style.display = 'block';
+        }
+
+        function closeTimeModal() {
+            document.getElementById('timeModal').style.display = 'none';
+            if (isTimerRunning) {
+                stopTimer();
+            }
+        }
+
+        function startTimer() {
+            isTimerRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = false;
+            
+            timerInterval = setInterval(() => {
+                seconds++;
+                updateTimeDisplay();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+
+        function stopTimer() {
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            
+            // Save time tracking data
+            saveTimeTracking();
+            
+            // Reset timer
+            seconds = 0;
+            updateTimeDisplay();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('taskDescription').value = '';
+        }
+
+        function updateTimeDisplay() {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            const display = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timeDisplay').textContent = display;
+        }
+
+        async function saveTimeTracking() {
+            const description = document.getElementById('taskDescription').value;
+            
+            try {
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.TIME_TRACKING.CREATE, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        duration: seconds,
+                        description: description,
+                        date: new Date().toISOString().split('T')[0],
+                        user_id: currentUser?.id
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Vaqt hisoblash saqlandi', 'success');
+                    closeTimeModal();
+                    // Reload dashboard data to update stats
+                    await loadDashboardData();
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    const apiError = ApiUtils.handleApiError(new Error('Save failed'), response);
+                    showToast(errorData.detail || apiError.message, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save time tracking:', error);
+                const apiError = ApiUtils.handleApiError(error);
+                showToast(apiError.message, 'error');
+            }
+        }
+
+        function viewProfile() {
+            // Profile modal yoki sahifasini ochish
+            alert('Profil bo\'limi hozirda ishlab chiqilmoqda');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Close toast
+        document.getElementById('toast-close').addEventListener('click', function() {
+            document.getElementById('toast').style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('timeModal');
+            if (event.target === modal) {
+                closeTimeModal();
+            }
+        });
+    </script>
+</body>
+</html>
