@@ -64,26 +64,73 @@ function setupEventListeners() {
 }
 
 // Load users from API
-async function loadUsers() {
+async function loadUsers(params = {}) {
     showLoading(true);
     
     try {
-        const response = await makeAuthenticatedRequest('/users/');
+        const queryParams = {
+            page: params.page || PAGINATION.DEFAULT_PAGE,
+            size: params.size || PAGINATION.DEFAULT_PAGE_SIZE,
+            ...params
+        };
+        
+        const response = await makeAuthenticatedRequest(API_ENDPOINTS.USERS.LIST, {
+            params: queryParams
+        });
         
         if (response.ok) {
-            users = await response.json();
+            const data = await response.json();
+            
+            // Handle different response formats
+            if (Array.isArray(data)) {
+                users = data;
+            } else if (data.items) {
+                users = data.items;
+                // Store pagination info if available
+                window.usersPagination = {
+                    total: data.total,
+                    page: data.page,
+                    size: data.size,
+                    totalPages: data.total_pages
+                };
+            } else {
+                users = [];
+            }
+            
             filteredUsers = [...users];
             renderUsers();
+            updateUserStats();
             showToast(`${users.length} ta xodim yuklandi`, 'success');
         } else {
-            throw new Error('Failed to load users');
+            const error = ApiUtils.handleApiError(new Error('Failed to load users'), response);
+            throw new Error(error.message);
         }
     } catch (error) {
         console.error('Error loading users:', error);
-        showToast('Xodimlar ma\'lumotlarini yuklashda xatolik', 'error');
+        showToast(error.message || ERROR_MESSAGES.UNKNOWN_ERROR, 'error');
         showEmptyState();
     } finally {
         showLoading(false);
+    }
+}
+
+// Update user statistics
+function updateUserStats() {
+    // Load user count if available
+    loadUserCount();
+}
+
+// Load user count
+async function loadUserCount() {
+    try {
+        const response = await makeAuthenticatedRequest(API_ENDPOINTS.USERS.COUNT);
+        if (response.ok) {
+            const data = await response.json();
+            // Update any count displays if needed
+            console.log('Total users:', data.count || data.total);
+        }
+    } catch (error) {
+        console.error('Error loading user count:', error);
     }
 }
 
@@ -243,17 +290,17 @@ async function handleUserSubmit(event) {
         if (editingUserId) {
             // Update user
             delete userData.password; // Don't send password on update
-            response = await makeAuthenticatedRequest(`/users/${editingUserId}`, {
+            response = await makeAuthenticatedRequest(API_ENDPOINTS.USERS.UPDATE(editingUserId), {
                 method: 'PUT',
                 body: JSON.stringify(userData)
             });
         } else {
             // Create user
             if (!userData.password) {
-                showToast('Parol kiritish majburiy', 'warning');
+                showToast(ERROR_MESSAGES.REQUIRED_FIELD, 'warning');
                 return;
             }
-            response = await makeAuthenticatedRequest('/users/', {
+            response = await makeAuthenticatedRequest(API_ENDPOINTS.USERS.CREATE, {
                 method: 'POST',
                 body: JSON.stringify(userData)
             });
@@ -265,12 +312,14 @@ async function handleUserSubmit(event) {
             closeUserModal();
             await loadUsers();
         } else {
-            const error = await response.json();
-            showToast(error.detail || 'Xatolik yuz berdi', 'error');
+            const errorData = await response.json().catch(() => ({}));
+            const apiError = ApiUtils.handleApiError(new Error('Save failed'), response);
+            showToast(errorData.detail || apiError.message, 'error');
         }
     } catch (error) {
         console.error('Error saving user:', error);
-        showToast('Foydalanuvchini saqlashda xatolik', 'error');
+        const apiError = ApiUtils.handleApiError(error);
+        showToast(apiError.message, 'error');
     } finally {
         showLoading(false);
     }
@@ -315,7 +364,7 @@ async function confirmDelete() {
     try {
         showLoading(true);
         
-        const response = await makeAuthenticatedRequest(`/users/${userId}`, {
+        const response = await makeAuthenticatedRequest(API_ENDPOINTS.USERS.DELETE(userId), {
             method: 'DELETE'
         });
         
@@ -324,12 +373,14 @@ async function confirmDelete() {
             closeDeleteModal();
             await loadUsers();
         } else {
-            const error = await response.json();
-            showToast(error.detail || 'O\'chirishda xatolik yuz berdi', 'error');
+            const errorData = await response.json().catch(() => ({}));
+            const apiError = ApiUtils.handleApiError(new Error('Delete failed'), response);
+            showToast(errorData.detail || apiError.message, 'error');
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        showToast('Foydalanuvchini o\'chirishda xatolik', 'error');
+        const apiError = ApiUtils.handleApiError(error);
+        showToast(apiError.message, 'error');
     } finally {
         showLoading(false);
     }

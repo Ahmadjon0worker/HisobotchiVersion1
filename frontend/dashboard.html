@@ -195,6 +195,7 @@
         <button id="toast-close">&times;</button>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
         // Global variables
@@ -259,33 +260,120 @@
         }
 
         async function loadDashboardData() {
-            const token = localStorage.getItem('token');
             try {
-                // Load statistics
+                // Load dashboard statistics
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.DASHBOARD.STATS);
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    updateDashboardStats(stats);
+                } else {
+                    // Fallback: load individual statistics
+                    await loadIndividualStats();
+                }
+                
+                // Load recent activity
+                await loadRecentActivity();
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                showToast('Dashboard ma\'lumotlarini yuklashda xatolik', 'error');
+            }
+        }
+
+        function updateDashboardStats(stats) {
+            document.getElementById('totalUsers').textContent = stats.users_count || 0;
+            document.getElementById('totalTasks').textContent = stats.tasks_count || 0;
+            document.getElementById('totalReports').textContent = stats.reports_count || 0;
+            document.getElementById('unreadMessages').textContent = stats.unread_messages || 0;
+        }
+
+        async function loadIndividualStats() {
+            try {
                 const [usersRes, tasksRes, reportsRes] = await Promise.all([
-                    fetch('/users/count', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/tasks/count', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/reports/count', { headers: { 'Authorization': `Bearer ${token}` } })
+                    makeAuthenticatedRequest(API_ENDPOINTS.USERS.COUNT),
+                    makeAuthenticatedRequest(API_ENDPOINTS.TASKS.COUNT),
+                    makeAuthenticatedRequest(API_ENDPOINTS.REPORTS.COUNT)
                 ]);
 
                 if (usersRes.ok) {
                     const usersData = await usersRes.json();
-                    document.getElementById('totalUsers').textContent = usersData.count || 0;
+                    document.getElementById('totalUsers').textContent = usersData.count || usersData.total || 0;
                 }
 
                 if (tasksRes.ok) {
                     const tasksData = await tasksRes.json();
-                    document.getElementById('totalTasks').textContent = tasksData.count || 0;
+                    document.getElementById('totalTasks').textContent = tasksData.count || tasksData.total || 0;
                 }
 
                 if (reportsRes.ok) {
                     const reportsData = await reportsRes.json();
-                    document.getElementById('totalReports').textContent = reportsData.count || 0;
+                    document.getElementById('totalReports').textContent = reportsData.count || reportsData.total || 0;
                 }
 
             } catch (error) {
-                console.error('Failed to load dashboard data:', error);
+                console.error('Failed to load individual stats:', error);
             }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.DASHBOARD.RECENT_ACTIVITY);
+                
+                if (response.ok) {
+                    const activities = await response.json();
+                    updateRecentActivity(activities);
+                }
+            } catch (error) {
+                console.error('Failed to load recent activity:', error);
+            }
+        }
+
+        function updateRecentActivity(activities) {
+            const activityList = document.getElementById('activityList');
+            if (!activityList || !Array.isArray(activities)) return;
+
+            const currentActivity = activityList.innerHTML;
+            
+            activities.slice(0, 5).forEach(activity => {
+                const activityHtml = `
+                    <div class="activity-item animate-fade-in-up">
+                        <div class="activity-icon">
+                            <i class="fas ${getActivityIcon(activity.type)}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p>${activity.description}</p>
+                            <span class="activity-time">${formatRelativeTime(new Date(activity.created_at))}</span>
+                        </div>
+                    </div>
+                `;
+                activityList.insertAdjacentHTML('afterbegin', activityHtml);
+            });
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'login': 'fa-sign-in-alt',
+                'task_created': 'fa-plus',
+                'task_completed': 'fa-check',
+                'report_submitted': 'fa-file-alt',
+                'user_created': 'fa-user-plus',
+                'default': 'fa-clock'
+            };
+            return icons[type] || icons.default;
+        }
+
+        function formatRelativeTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Hozir';
+            if (minutes < 60) return `${minutes} daqiqa oldin`;
+            if (hours < 24) return `${hours} soat oldin`;
+            return `${days} kun oldin`;
         }
 
         function updateDateTime() {
@@ -355,32 +443,33 @@
         }
 
         async function saveTimeTracking() {
-            const token = localStorage.getItem('token');
             const description = document.getElementById('taskDescription').value;
             
             try {
-                const response = await fetch('/time-tracking/', {
+                const response = await makeAuthenticatedRequest(API_ENDPOINTS.TIME_TRACKING.CREATE, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({
                         duration: seconds,
                         description: description,
-                        date: new Date().toISOString().split('T')[0]
+                        date: new Date().toISOString().split('T')[0],
+                        user_id: currentUser?.id
                     })
                 });
 
                 if (response.ok) {
                     showToast('Vaqt hisoblash saqlandi', 'success');
                     closeTimeModal();
+                    // Reload dashboard data to update stats
+                    await loadDashboardData();
                 } else {
-                    showToast('Vaqt hisoblashni saqlashda xatolik', 'error');
+                    const errorData = await response.json().catch(() => ({}));
+                    const apiError = ApiUtils.handleApiError(new Error('Save failed'), response);
+                    showToast(errorData.detail || apiError.message, 'error');
                 }
             } catch (error) {
                 console.error('Failed to save time tracking:', error);
-                showToast('Vaqt hisoblashni saqlashda xatolik', 'error');
+                const apiError = ApiUtils.handleApiError(error);
+                showToast(apiError.message, 'error');
             }
         }
 

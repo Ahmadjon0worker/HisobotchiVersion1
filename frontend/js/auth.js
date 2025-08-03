@@ -1,8 +1,5 @@
 // Auth.js - JWT token boshqaruvi va autentifikatsiya
 
-// API base URL
-const API_BASE_URL = window.location.origin;
-
 // Auth utility functions
 class AuthManager {
     constructor() {
@@ -13,19 +10,19 @@ class AuthManager {
 
     // Token olish
     getToken() {
-        return localStorage.getItem('token');
+        return localStorage.getItem(STORAGE_KEYS.TOKEN);
     }
 
     // Token saqlash
     setToken(token) {
-        localStorage.setItem('token', token);
+        localStorage.setItem(STORAGE_KEYS.TOKEN, token);
         this.token = token;
         this.scheduleTokenRefresh();
     }
 
     // Token o'chirish
     removeToken() {
-        localStorage.removeItem('token');
+        localStorage.removeItem(STORAGE_KEYS.TOKEN);
         this.token = null;
         if (this.refreshTokenTimeout) {
             clearTimeout(this.refreshTokenTimeout);
@@ -35,13 +32,13 @@ class AuthManager {
     // Foydalanuvchi ma'lumotlarini saqlash
     setUser(user) {
         this.user = user;
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     }
 
     // Foydalanuvchi ma'lumotlarini olish
     getUser() {
         if (this.user) return this.user;
-        const stored = localStorage.getItem('user');
+        const stored = localStorage.getItem(STORAGE_KEYS.USER);
         return stored ? JSON.parse(stored) : null;
     }
 
@@ -82,7 +79,7 @@ class AuthManager {
     // Token yangilash
     async refreshToken() {
         try {
-            const response = await this.makeRequest('/auth/refresh', {
+            const response = await this.makeRequest(API_ENDPOINTS.AUTH.REFRESH, {
                 method: 'POST'
             });
 
@@ -103,25 +100,32 @@ class AuthManager {
 
     // API so'rov yuborish
     async makeRequest(endpoint, options = {}) {
-        const url = `${API_BASE_URL}${endpoint}`;
+        const url = ApiUtils.buildUrl(endpoint, options.params);
         const defaultHeaders = {
-            'Content-Type': 'application/json',
+            ...REQUEST_CONFIG.headers,
+            ...ApiUtils.getAuthHeaders(this.token)
         };
 
-        if (this.token) {
-            defaultHeaders['Authorization'] = `Bearer ${this.token}`;
-        }
-
         const config = {
+            ...REQUEST_CONFIG,
             headers: { ...defaultHeaders, ...options.headers },
             ...options
         };
 
+        // Remove params from options since they're in URL now
+        delete config.params;
+
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), REQUEST_CONFIG.timeout);
+            
+            config.signal = controller.signal;
+            
             const response = await fetch(url, config);
+            clearTimeout(timeoutId);
             
             // Token muddati tugagan bo'lsa
-            if (response.status === 401 && this.token) {
+            if (response.status === HTTP_STATUS.UNAUTHORIZED && this.token) {
                 const refreshed = await this.refreshToken();
                 if (refreshed) {
                     // So'rovni qayta yuborish
@@ -132,6 +136,9 @@ class AuthManager {
 
             return response;
         } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
             console.error('Request error:', error);
             throw error;
         }
@@ -142,7 +149,7 @@ class AuthManager {
         try {
             showLoading(true);
             
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            const response = await fetch(ApiUtils.buildUrl(API_ENDPOINTS.AUTH.LOGIN), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -158,7 +165,7 @@ class AuthManager {
                 this.setToken(data.access_token);
                 
                 // Foydalanuvchi ma'lumotlarini olish
-                const userResponse = await this.makeRequest('/auth/me');
+                const userResponse = await this.makeRequest(API_ENDPOINTS.AUTH.ME);
                 if (userResponse.ok) {
                     const userData = await userResponse.json();
                     this.setUser(userData);
@@ -166,17 +173,19 @@ class AuthManager {
 
                 return { success: true };
             } else {
-                const error = await response.json();
+                const errorData = await response.json().catch(() => ({}));
+                const apiError = ApiUtils.handleApiError(new Error('Login failed'), response);
                 return { 
                     success: false, 
-                    message: error.detail || 'Kirish jarayonida xatolik yuz berdi' 
+                    message: errorData.detail || apiError.message
                 };
             }
         } catch (error) {
             console.error('Login error:', error);
+            const apiError = ApiUtils.handleApiError(error);
             return { 
                 success: false, 
-                message: 'Tarmoq xatoligi. Qaytadan urinib ko\'ring.' 
+                message: apiError.message
             };
         } finally {
             showLoading(false);
@@ -184,33 +193,44 @@ class AuthManager {
     }
 
     // Chiqish
-    logout() {
-        this.removeToken();
-        localStorage.removeItem('user');
-        this.user = null;
-        window.location.href = 'index.html';
+    async logout() {
+        try {
+            // Server'ga logout so'rovi yuborish
+            if (this.token) {
+                await this.makeRequest(API_ENDPOINTS.AUTH.LOGOUT, {
+                    method: 'POST'
+                }).catch(console.error); // Ignore logout errors
+            }
+        } finally {
+            // Client-side cleanup
+            this.removeToken();
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+            this.user = null;
+            window.location.href = 'index.html';
+        }
     }
 
     // Foydalanuvchi autentifikatsiya qilinganligini tekshirish
     async checkAuth() {
         if (!this.token || !this.isTokenValid()) {
-            this.logout();
+            await this.logout();
             return false;
         }
 
         try {
-            const response = await this.makeRequest('/auth/me');
+            const response = await this.makeRequest(API_ENDPOINTS.AUTH.ME);
             if (response.ok) {
                 const userData = await response.json();
                 this.setUser(userData);
                 return true;
             } else {
-                this.logout();
+                await this.logout();
                 return false;
             }
         } catch (error) {
             console.error('Auth check error:', error);
-            this.logout();
+            await this.logout();
             return false;
         }
     }
