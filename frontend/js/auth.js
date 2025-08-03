@@ -18,7 +18,7 @@ class AuthManager {
 
     // Token saqlash
     setToken(token) {
-        localStorage.setItem('token');
+        localStorage.setItem('token', token);
         this.token = token;
         this.scheduleTokenRefresh();
     }
@@ -396,10 +396,215 @@ document.addEventListener('visibilitychange', function() {
 // Initialize auth manager
 authManager.scheduleTokenRefresh();
 
+// ===== DARK MODE FUNCTIONALITY =====
+class ThemeManager {
+    constructor() {
+        this.theme = localStorage.getItem('theme') || 'light';
+        this.applyTheme();
+    }
+
+    toggleTheme() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        this.applyTheme();
+        this.saveTheme();
+        this.animateToggle();
+    }
+
+    applyTheme() {
+        document.documentElement.setAttribute('data-theme', this.theme);
+        this.updateThemeIcon();
+    }
+
+    saveTheme() {
+        localStorage.setItem('theme', this.theme);
+    }
+
+    updateThemeIcon() {
+        const toggles = document.querySelectorAll('.theme-toggle');
+        toggles.forEach(toggle => {
+            const sunIcon = toggle.querySelector('.sun-icon');
+            const moonIcon = toggle.querySelector('.moon-icon');
+            
+            if (this.theme === 'dark') {
+                sunIcon.style.opacity = '0.4';
+                moonIcon.style.opacity = '1';
+            } else {
+                sunIcon.style.opacity = '1';
+                moonIcon.style.opacity = '0.4';
+            }
+        });
+    }
+
+    animateToggle() {
+        const toggles = document.querySelectorAll('.theme-toggle');
+        toggles.forEach(toggle => {
+            toggle.classList.add('toggling');
+            setTimeout(() => {
+                toggle.classList.remove('toggling');
+            }, 300);
+        });
+
+        // Add a subtle page transition effect
+        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    }
+
+    isDark() {
+        return this.theme === 'dark';
+    }
+
+    setTheme(theme) {
+        if (['light', 'dark'].includes(theme)) {
+            this.theme = theme;
+            this.applyTheme();
+            this.saveTheme();
+        }
+    }
+
+    // Auto detect system preference
+    detectSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+
+    // Initialize with system preference if no saved theme
+    initializeWithSystemPreference() {
+        if (!localStorage.getItem('theme')) {
+            this.theme = this.detectSystemTheme();
+            this.applyTheme();
+            this.saveTheme();
+        }
+    }
+
+    // Listen for system theme changes
+    watchSystemTheme() {
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) {
+                    this.theme = e.matches ? 'dark' : 'light';
+                    this.applyTheme();
+                }
+            });
+        }
+    }
+}
+
+// Global theme manager instance
+const themeManager = new ThemeManager();
+
+// Initialize theme on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize with system preference if no saved theme
+    themeManager.initializeWithSystemPreference();
+    
+    // Watch for system theme changes
+    themeManager.watchSystemTheme();
+    
+    // Add keyboard shortcut for theme toggle (Ctrl/Cmd + D)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            themeManager.toggleTheme();
+            showToast(`${themeManager.isDark() ? 'Qora' : 'Yorqin'} rejim yoqildi`, 'info');
+        }
+    });
+});
+
+// Toggle theme function for global access
+function toggleTheme() {
+    themeManager.toggleTheme();
+    
+    // Show toast notification
+    const themeText = themeManager.isDark() ? 'Qora rejim yoqildi 🌙' : 'Yorqin rejim yoqildi ☀️';
+    showToast(themeText, 'info');
+}
+
+// Theme-aware toast colors
+function getThemeAwareToastClass(type) {
+    const isDark = themeManager.isDark();
+    const themeClasses = {
+        success: isDark ? 'success-dark' : 'success',
+        error: isDark ? 'error-dark' : 'error',
+        warning: isDark ? 'warning-dark' : 'warning',
+        info: isDark ? 'info-dark' : 'info'
+    };
+    return themeClasses[type] || type;
+}
+
+// Enhanced showToast with theme support
+function showToastEnhanced(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    if (toast && toastMessage) {
+        toastMessage.textContent = message;
+        toast.className = `toast ${getThemeAwareToastClass(type)} animate-slide-in-right`;
+        toast.style.display = 'block';
+        
+        // Auto hide after 4 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                toast.style.display = 'none';
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            }, 300);
+        }, 4000);
+    } else {
+        // Fallback
+        alert(message);
+    }
+}
+
+// Enhanced loading with theme support
+function showLoadingEnhanced(show) {
+    const loading = document.getElementById('loading');
+    if (loading) {
+        if (show) {
+            loading.style.display = 'flex';
+            loading.classList.add('animate-fade-in');
+        } else {
+            loading.classList.add('animate-fade-out');
+            setTimeout(() => {
+                loading.style.display = 'none';
+                loading.classList.remove('animate-fade-in', 'animate-fade-out');
+            }, 200);
+        }
+    }
+}
+
+// Add new fade out animation to CSS (this would be handled in CSS)
+const style = document.createElement('style');
+style.textContent = `
+    .animate-fade-out {
+        animation: fadeOut 0.2s ease-out forwards;
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    
+    /* Theme-aware toast variants */
+    .toast.success-dark { border-left-color: var(--emerald-400); background: var(--dark-bg-modal); }
+    .toast.error-dark { border-left-color: var(--red-400); background: var(--dark-bg-modal); }
+    .toast.warning-dark { border-left-color: var(--amber-400); background: var(--dark-bg-modal); }
+    .toast.info-dark { border-left-color: var(--blue-400); background: var(--dark-bg-modal); }
+`;
+document.head.appendChild(style);
+
 // Export for use in other files
 window.authManager = authManager;
-window.showToast = showToast;
-window.showLoading = showLoading;
+window.themeManager = themeManager;
+window.toggleTheme = toggleTheme;
+window.showToast = showToastEnhanced; // Use enhanced version
+window.showLoading = showLoadingEnhanced; // Use enhanced version
 window.logout = logout;
 window.checkAuth = checkAuth;
 window.requireAuth = requireAuth;

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vazifalar - Hisobotchi Tizimi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>Hisobotchi Tizimi</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="dashboard.html" class="nav-link">
+                <i class="fas fa-tachometer-alt"></i>
+                Dashboard
+            </a>
+            <a href="users.html" class="nav-link" id="usersLink">
+                <i class="fas fa-users"></i>
+                Xodimlar
+            </a>
+            <a href="tasks.html" class="nav-link active">
+                <i class="fas fa-tasks"></i>
+                Vazifalar
+            </a>
+            <a href="reports.html" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                Hisobotlar
+            </a>
+            <a href="chat.html" class="nav-link">
+                <i class="fas fa-comments"></i>
+                Chat
+            </a>
+        </div>
+        
+        <div class="nav-user">
+            <!-- Theme Toggle -->
+            <div class="theme-toggle animate-scale-in" onclick="toggleTheme()">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+            </div>
+            
+            <div class="user-info">
+                <span id="userName">Foydalanuvchi</span>
+                <span id="userRole" class="user-role">User</span>
+            </div>
+            <div class="user-dropdown">
+                <i class="fas fa-user-circle"></i>
+                <div class="dropdown-menu">
+                    <a href="#" onclick="viewProfile()">
+                        <i class="fas fa-user"></i>
+                        Profil
+                    </a>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Chiqish
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title animate-fade-in-down">Vazifalar boshqaruvi</h1>
+            <button class="btn btn-primary animate-fade-in-down" onclick="openTaskModal()" id="createTaskBtn">
+                <i class="fas fa-plus"></i>
+                Yangi vazifa yaratish
+            </button>
+        </div>
+
+        <!-- Task Stats -->
+        <div class="stats-grid animate-fade-in-up">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalTasks">0</h3>
+                    <p>Jami vazifalar</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="pendingTasks">0</h3>
+                    <p>Kutilayotgan</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-spinner"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="inProgressTasks">0</h3>
+                    <p>Jarayonda</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="completedTasks">0</h3>
+                    <p>Bajarilgan</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section animate-fade-in-up">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="statusFilter">Status bo'yicha:</label>
+                    <select id="statusFilter" onchange="filterTasks()">
+                        <option value="">Barchasi</option>
+                        <option value="pending">Kutilayotgan</option>
+                        <option value="in_progress">Jarayonda</option>
+                        <option value="completed">Bajarilgan</option>
+                        <option value="cancelled">Bekor qilingan</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="priorityFilter">Muhimligi bo'yicha:</label>
+                    <select id="priorityFilter" onchange="filterTasks()">
+                        <option value="">Barchasi</option>
+                        <option value="low">Past</option>
+                        <option value="medium">O'rta</option>
+                        <option value="high">Yuqori</option>
+                        <option value="urgent">Shoshilinch</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="assigneeFilter">Javobgar bo'yicha:</label>
+                    <select id="assigneeFilter" onchange="filterTasks()">
+                        <option value="">Barchasi</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="searchInput">Qidirish:</label>
+                    <input type="text" id="searchInput" placeholder="Vazifa nomi yoki tavsif" oninput="filterTasks()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Grid -->
+        <div id="tasksContainer" class="tasks-grid animate-fade-in-up">
+            <!-- Tasks will be loaded here -->
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="tasksLoading" class="loading-indicator" style="display: none;">
+            <div class="spinner animate-spin"></div>
+            <p>Vazifalar yuklanmoqda...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-tasks"></i>
+            <h3>Hech qanday vazifa topilmadi</h3>
+            <p>Filtrlash shartlaringizni o'zgartiring yoki yangi vazifa yarating</p>
+        </div>
+    </main>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Yangi vazifa yaratish</h3>
+                <span class="close" onclick="closeTaskModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="taskTitle">Vazifa nomi *</label>
+                            <input type="text" id="taskTitle" name="title" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="taskPriority">Muhimligi *</label>
+                            <select id="taskPriority" name="priority" required>
+                                <option value="low">Past</option>
+                                <option value="medium" selected>O'rta</option>
+                                <option value="high">Yuqori</option>
+                                <option value="urgent">Shoshilinch</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="taskAssignee">Javobgar</label>
+                            <select id="taskAssignee" name="assignee_id">
+                                <option value="">Tanlash</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="taskDueDate">Muddat</label>
+                            <input type="datetime-local" id="taskDueDate" name="due_date">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskDescription">Tavsif</label>
+                        <textarea id="taskDescription" name="description" rows="4" placeholder="Vazifa haqida batafsil..."></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">
+                            Bekor qilish
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="taskDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="detailModalTitle">Vazifa tafsilotlari</h3>
+                <span class="close" onclick="closeTaskDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="taskDetailContent">
+                    <!-- Task details will be populated here -->
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskDetailModal()">
+                        Yopish
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="editCurrentTask()" id="editTaskBtn">
+                        <i class="fas fa-edit"></i>
+                        Tahrirlash
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast">
+        <span id="toast-message"></span>
+        <button id="toast-close">&times;</button>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/tasks.js"></script>
+</body>
+</html>
